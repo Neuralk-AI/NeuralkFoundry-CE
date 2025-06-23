@@ -1,3 +1,9 @@
+"""Models dedicated to classification tasks."""
+
+from ...utils.docs import add_submodules_to_docstring
+add_submodules_to_docstring(__name__)
+
+
 from .xgboost import XGBoostClassifier
 from .catboost import CatBoostClassifier
 from .lightgbm import LightGBMClassifier

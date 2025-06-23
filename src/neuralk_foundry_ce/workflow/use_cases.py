@@ -1,13 +1,12 @@
 from collections import OrderedDict
-from ..sample_selection.splitter.stratified_shuffle import StratifiedShuffleSplitter
-from ..sample_selection.splitter.shuffle import ShuffleSplitter
-from ..feature_engineering.vectorizer import TfidfVectorizer
-from ..feature_engineering.preprocessing import ColumnTypeDetection, CategoricalPreprocessor, NumericalPreprocessor, LabelEncoder
-
-from ..models.classifier import XGBoostClassifier
 from typing import List
+
 from .workflow import WorkFlow
 from .utils import notebook_display
+from ..sample_selection.splitter.stratified_shuffle import StratifiedShuffleSplitter
+from ..feature_engineering.vectorizer import TfidfVectorizer
+from ..feature_engineering.preprocessing import ColumnTypeDetection, CategoricalPreprocessor, NumericalPreprocessor, LabelEncoder
+from ..models.classifier import XGBoostClassifier
 
 
 class Classification():

@@ -1,4 +1,4 @@
-from .base import ClassifierModel
+from .base import RegressorModel
 from ...utils.splitting import with_masked_split
 
 
