@@ -9,7 +9,20 @@ class Split(IntEnum):
     TEST = 2
     NONE = 3
 
+
 def with_masked_split(fn):
+    """
+    Decorator for applying masking to inputs regarding the split to use.
+            
+    Examples
+    --------
+    >>> @with_masked_split
+    ... def my_function(X, y=None):
+    ...     return len(X)
+    ... 
+    >>> # Use with split masking
+    >>> result = my_function(X, y, split_mask=split_mask, splits=[Split.TRAIN])
+    """
     def wrapper(self, X, y=None, split_mask=None, splits=[Split.TRAIN]):
         mask = np.isin(np.array(split_mask), splits)
         if y is not None:

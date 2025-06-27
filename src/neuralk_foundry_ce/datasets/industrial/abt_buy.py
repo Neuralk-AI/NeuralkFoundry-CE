@@ -6,12 +6,30 @@ from ..base import DownloadDataConfig
 
 @dataclass
 class DataConfig(DownloadDataConfig):
-    name: str  = "abt_buy"
-    task: str  = "linkage"
+    """
+    Configuration for the Abt-Buy entity linkage dataset.
+    
+    This dataset is used for entity resolution tasks where the goal is to
+    identify matching products between two different e-commerce catalogs.
+    """
+    name: str = "abt_buy"
+    task: str = "linkage"
     target: str = "group_id"
     file_name: str = 'data.parquet'
 
     def download_data(self, target_path):
+        """
+        Download and preprocess the Abt-Buy dataset.
+        
+        Downloads the raw CSV files from the RLTK experimentation repository,
+        performs basic preprocessing including manufacturer extraction from
+        product names, and creates entity linkage labels.
+        
+        Parameters
+        ----------
+        target_path : Path
+            Directory path where the processed dataset should be saved.
+        """
         ds_url = 'https://raw.githubusercontent.com/usc-isi-i2/rltk-experimentation/refs/heads/master/datasets'
         abt = pd.read_csv(ds_url + '/Abt-Buy/Abt.csv', encoding='unicode_escape', index_col='id')
         buy = pd.read_csv(ds_url + '/Abt-Buy/Buy.csv', encoding='unicode_escape', index_col='id')

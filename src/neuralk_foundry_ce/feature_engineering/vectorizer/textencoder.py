@@ -1,12 +1,16 @@
 from .base import BaseVectorizer
 import pandas as pd
-import numpy as np
 
 
 class TextVectorizer(BaseVectorizer):
     """
-    Encode textual columns in a DataFrame using e5-small-v2.
-
+    Encode textual columns in a DataFrame.
+    
+    The vectorizer uses the TextEncoder from skrub, which leverages
+    text embedding models (like E5-small-v2) to create text
+    representations. It automatically detects text columns and applies
+    encoding while preserving non-text columns.
+    
     Attributes
     ----------
     name : str
@@ -24,6 +28,28 @@ class TextVectorizer(BaseVectorizer):
         super().__init__()
 
     def forward(self, X: pd.DataFrame, y=None):
+        """
+        Transform the input DataFrame using text encoding on text columns.
+        
+        This method:
+        1. Identifies text columns (object dtype with string values)
+        2. Applies text encoding using skrub's TextEncoder
+        3. Preserves non-text columns unchanged
+        4. Combines all columns into a single DataFrame
+        
+        Parameters
+        ----------
+        X : pd.DataFrame
+            Input DataFrame containing mixed data types.
+        y : array-like, optional
+            Target values (not used in text encoding).
+
+        Returns
+        -------
+        pd.DataFrame
+            Transformed DataFrame with encoded text columns and
+            preserved non-text columns.
+        """
         from skrub import TextEncoder as _TextEncoder
 
         text_columns = [

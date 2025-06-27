@@ -24,6 +24,7 @@ class TfidfVectorizer(BaseVectorizer):
     -----
     - The number of TF-IDF features per column is limited to `max_features=20`.
     - Missing values in text columns are replaced with empty strings before vectorization.
+    - Column names are prefixed with the original column name to avoid conflicts.
     """
 
     name = "tfidf-vectorizer"

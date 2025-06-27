@@ -51,12 +51,17 @@ class TabPfnVectorizer(Step):
         Parameters
         ----------
         inputs : dict
-            Dictionary containing 'X', 'y', 'folds', 'task', and 'seed'.
+            Dictionary containing:
+            - 'X': Input feature matrix
+            - 'y': Target values
+            - 'folds': Fold assignments for each sample
+            - 'task': Task type ('classification' or 'regression')
+            - 'seed': Random seed for reproducibility
 
         Raises
         ------
         ValueError
-            If the provided task is not supported.
+            If the provided task is not supported (must be 'classification' or 'regression').
         """
         from tabpfn_extensions.embedding import TabPFNEmbedding
         from tabpfn_extensions import TabPFNClassifier, TabPFNRegressor
