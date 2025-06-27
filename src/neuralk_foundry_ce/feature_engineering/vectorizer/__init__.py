@@ -5,10 +5,10 @@ from .tfidfencoder import TfidfVectorizer
 from .textencoder import TextVectorizer
 
 
-__all__ = {
+__all__ = [
     'IdentityVectorizer',
     'TableVectorizer',
     'TabPfnVectorizer',
     'TfidfVectorizer',
     'TextVectorizer',
-}
+]

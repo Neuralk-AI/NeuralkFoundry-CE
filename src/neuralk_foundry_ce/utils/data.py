@@ -13,7 +13,8 @@ def array_to_dataframe(array: np.ndarray, prefix: str = "column") -> pd.DataFram
     array : np.ndarray
         Input array of shape (n_samples, n_features).
     prefix : str
-        Prefix to use for column names.
+        Prefix to use for column names. Column names will be formatted as
+        "{prefix}_{i+1}" where i is the column index.
 
     Returns
     -------
@@ -31,28 +32,29 @@ def make_deduplication(num_samples=10000, embed_dim=128, dup_frac=0.7, avg_dups=
     
     Parameters
     ----------
-    num_samples : int
+    num_samples : int, default=10000
         Total number of unique samples to generate before duplication.
     
-    embed_dim : int
+    embed_dim : int, default=128
         Dimensionality of the embedding space for each sample.
     
-    dup_frac : float
+    dup_frac : float, default=0.7
         Fraction of the final dataset that will consist of duplicates.
         Must be between 0 and 1.
     
-    avg_dups : float
+    avg_dups : float, default=3.0
         Average number of duplicates per duplicated sample.
         Only applies to samples selected for duplication.
     
-    decay : float
+    decay : float, default=1.0
         Exponent controlling the steepness of the duplication count distribution.
         Higher values lead to fewer duplicates per sample on average (power-law decay).
     
     Returns
     -------
-    df : pd.DataFrame (n_total_samples, embed_dim + 1)
+    df : pd.DataFrame
         The full dataset containing original, duplicated samples, and targets.
+        Shape: (n_total_samples, embed_dim + 1)
     
     target_col : str
         Name of the target column in the DataFrame
