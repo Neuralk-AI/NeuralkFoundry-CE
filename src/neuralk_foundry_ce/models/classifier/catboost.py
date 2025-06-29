@@ -18,11 +18,6 @@ class CatBoostClassifier(ClassifierModel):
     - y_pred : Predicted class labels.
     - y_score : Class probabilities (if available and requested).
 
-    Parameters
-    ----------
-    Standard CatBoost hyperparameters can be passed to control training behavior,
-    such as `iterations`, `learning_rate`, `depth`, `l2_leaf_reg`, etc.
-
     Notes
     -----
     Requires `catboost` to be installed.
@@ -33,6 +28,15 @@ class CatBoostClassifier(ClassifierModel):
         super().__init__()
 
     def init_model(self, config):
+        """
+        Initialize the model with given hyperparameters.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            Keyword arguments corresponding to model hyperparameters.
+            These will be passed directly to the model constructor.
+        """
         from catboost import CatBoostClassifier as _CatBoostClassifier
 
         self.model = _CatBoostClassifier(verbose=0, **config)

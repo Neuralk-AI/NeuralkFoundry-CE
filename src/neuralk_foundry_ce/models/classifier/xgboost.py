@@ -18,11 +18,6 @@ class XGBoostClassifier(ClassifierModel):
     - y_pred : Predicted class labels.
     - y_score : Class probabilities (if available and requested).
 
-    Parameters
-    ----------
-    Standard XGBoost hyperparameters can be passed to control training behavior,
-    such as `n_estimators`, `learning_rate`, `max_depth`, etc.
-
     Notes
     -----
     Requires `xgboost` to be installed.
@@ -33,6 +28,15 @@ class XGBoostClassifier(ClassifierModel):
         super().__init__()
 
     def init_model(self, config):
+        """
+        Initialize the model with given hyperparameters.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            Keyword arguments corresponding to model hyperparameters.
+            These will be passed directly to the model constructor.
+        """
         import xgboost as xgb
 
         self.model = xgb.XGBClassifier(**config)

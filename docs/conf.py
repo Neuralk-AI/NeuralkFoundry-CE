@@ -128,6 +128,28 @@ napoleon_custom_sections = [
 
 # -- Autodoc, autosummary, and autosectionlabel settings ------------------------------
 
+
+
+def skip_reexported_symbols(app, what, name, obj, skip, options):
+    declared_mod = name.rsplit(".", 1)[0] if "." in name else None
+    real_mod = getattr(obj, "__module__", None)
+
+    if not declared_mod or not real_mod:
+        return None
+
+    # Skip if re-exported from a different module and NOT internal
+    if declared_mod != real_mod and not real_mod.startswith("neuralk_foundry_ce"):
+        print(f"🔁 Skipping external re-export: {name} (from {real_mod})")
+        return True
+
+    return None
+
+def setup(app):
+    app.connect("autodoc-skip-member", skip_reexported_symbols)
+
+
+
+
 autodoc_typehints = "description"
 autodoc_typehints_format = "short"
 

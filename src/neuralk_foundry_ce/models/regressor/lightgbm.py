@@ -16,11 +16,6 @@ class LightGBMRegressor(RegressorModel):
     -------
     - y_pred : Predicted values.
 
-    Parameters
-    ----------
-    Standard LightGBM hyperparameters can be passed to control training behavior,
-    such as `n_estimators`, `learning_rate`, `num_leaves`, `max_depth`, etc.
-
     Notes
     -----
     Requires `lightgbm` to be installed.
@@ -31,6 +26,15 @@ class LightGBMRegressor(RegressorModel):
         super().__init__()
 
     def init_model(self, config):
+        """
+        Initialize the model with given hyperparameters.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            Keyword arguments corresponding to model hyperparameters.
+            These will be passed directly to the model constructor.
+        """
         from lightgbm import LGBMRegressor
         
         self.model = LGBMRegressor(**config)

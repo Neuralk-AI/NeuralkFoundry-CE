@@ -16,11 +16,6 @@ class CatBoostRegressor(RegressorModel):
     -------
     - y_pred : Predicted values.
 
-    Parameters
-    ----------
-    Standard CatBoost hyperparameters can be passed to control training behavior,
-    such as `iterations`, `learning_rate`, `depth`, `l2_leaf_reg`, etc.
-
     Notes
     -----
     Requires `catboost` to be installed.
@@ -31,6 +26,15 @@ class CatBoostRegressor(RegressorModel):
         super().__init__()
 
     def init_model(self, config):
+        """
+        Initialize the model with given hyperparameters.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            Keyword arguments corresponding to model hyperparameters.
+            These will be passed directly to the model constructor.
+        """
         from catboost import CatBoostRegressor  as _CatBoostRegressor
 
         self.model = _CatBoostRegressor(verbose=0, **config)

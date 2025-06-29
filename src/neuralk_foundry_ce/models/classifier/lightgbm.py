@@ -19,11 +19,6 @@ class LightGBMClassifier(ClassifierModel):
     - y_pred : Predicted class labels.
     - y_score : Class probabilities (if available and requested).
 
-    Parameters
-    ----------
-    Standard LightGBM hyperparameters can be passed to control training behavior,
-    such as `n_estimators`, `learning_rate`, `num_leaves`, `max_depth`, etc.
-
     Notes
     -----
     Requires `lightgbm` to be installed.
@@ -34,6 +29,15 @@ class LightGBMClassifier(ClassifierModel):
         super().__init__()
 
     def init_model(self, config):
+        """
+        Initialize the model with given hyperparameters.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            Keyword arguments corresponding to model hyperparameters.
+            These will be passed directly to the model constructor.
+        """
         from lightgbm import LGBMClassifier
 
         self.model = LGBMClassifier(**config)
