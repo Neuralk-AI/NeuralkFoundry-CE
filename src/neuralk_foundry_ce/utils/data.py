@@ -126,6 +126,8 @@ def load_dataframe(filepath, **kwargs):
         return pd.read_pickle(filepath, **kwargs)
     elif ext == '.h5':
         return pd.read_hdf(filepath, **kwargs)
+    elif ext == '.npy':
+        return np.load(filepath, allow_pickle=True)
     else:
         raise ValueError(f"Unsupported file extension: {ext}")
     
