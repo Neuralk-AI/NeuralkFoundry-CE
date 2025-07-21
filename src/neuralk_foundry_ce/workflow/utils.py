@@ -6,20 +6,7 @@ from IPython.display import display, HTML
 from collections import OrderedDict
 from typing import List
 
-from ..workflow import Step, Field
-
-
-def make_json_serializable(obj):
-    if isinstance(obj, dict):
-        return {k: make_json_serializable(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [make_json_serializable(v) for v in obj]
-    elif isinstance(obj, (np.integer, np.floating, np.bool_)):
-        return obj.item()
-    elif isinstance(obj, np.ndarray):
-        return obj.tolist()
-    else:
-        return obj
+from ..workflow import Field
 
 
 def render_workflow_html(workflow_structure):

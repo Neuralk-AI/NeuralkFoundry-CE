@@ -5,7 +5,7 @@ from functools import wraps
 import numpy as np
 
 from ..utils.splitting import Split
-from ..utils.performance import profile_function
+from ..utils.execution import profile_function
 from .hyperopt import hyperoptimize
 from ..workflow import Step, Field
 

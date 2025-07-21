@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 import os
+import json
+from pathlib import Path
 
 
 def array_to_dataframe(array: np.ndarray, prefix: str = "column") -> pd.DataFrame:
@@ -148,3 +150,46 @@ def get_dataset_dir() -> Path:
     )
     base_dir.mkdir(parents=True, exist_ok=True)
     return base_dir
+
+
+def load_json(path: Path):
+    """
+    Load a JSON file if it exists, otherwise return None.
+
+    Parameters:
+    - path: Path to the JSON file
+
+    Returns:
+    - The loaded JSON object or None if the file does not exist
+    """
+    if path.exists():
+        with open(path, "r") as f:
+            return json.load(f)
+    return None
+
+
+def dump_json(path: Path, obj, indent=2):
+    """
+    Dump a Python object to a JSON file.
+
+    Parameters:
+    - obj: The Python object to serialize
+    - path: Output file path
+    - indent: Indentation level (default: 2)
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w") as f:
+        json.dump(obj, f, indent=indent)
+
+
+def make_json_serializable(obj):
+    if isinstance(obj, dict):
+        return {k: make_json_serializable(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [make_json_serializable(v) for v in obj]
+    elif isinstance(obj, (np.integer, np.floating, np.bool_)):
+        return obj.item()
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    else:
+        return obj

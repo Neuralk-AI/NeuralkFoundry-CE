@@ -1,12 +1,19 @@
-from collections import defaultdict
-from typing import List
-from copy import deepcopy
 import warnings
+import json
+from collections import defaultdict
+from copy import deepcopy
 from dataclasses import dataclass
-from typing import Optional, Any
-import inspect
+from typing import Any
 from inspect import getdoc
+from pathlib import Path
 
+import joblib
+import pandas as pd
+import numpy as np
+
+from ..utils.data import make_json_serializable
+from ..utils.execution import profile_function, get_current_env
+from ..utils.data import load_json, dump_json
 
 
 @dataclass
@@ -120,7 +127,7 @@ class StepMeta(type):
         return cls.registry[name]
 
     @classmethod
-    def list_subclasses(cls, name: str) -> List[str]:
+    def list_subclasses(cls, name: str) -> list[str]:
         """
         List the names of all subclasses registered under a given parent class name.
 
@@ -142,12 +149,12 @@ def get_step_class(name: str) -> type:
     return StepMeta.get_step_class(name)
 
 
-def list_subclasses(name: str) -> List[str]:
+def list_subclasses(name: str) -> list[str]:
     """Lists all subclasses of a given step class by name."""
     return StepMeta.list_subclasses(name)
 
 
-def get_full_path_from_class(class_name: str) -> List[str]:
+def get_full_path_from_class(class_name: str) -> list[str]:
     """
     Compute all hierarchical paths from a given class name to its leaf subclasses.
 
@@ -182,6 +189,89 @@ def get_full_path_from_class(class_name: str) -> List[str]:
         result.append(root_path + path_from_cls)
 
     return result
+
+
+def is_json_serializable(obj):
+    try:
+        json.dumps(obj)
+        return True
+    except (TypeError, OverflowError):
+        return False
+    
+
+def load_cached_data(cache_dir: Path) -> dict:
+    """Load cached data stored by `cache_data`.
+
+    This function reads the cache folder created for a given step and loads:
+    - Heavy objects stored as `.parquet`, `.npy`, or `.pkl`
+    - Scalar values grouped into `_scalars.json`
+
+    Parameters
+    ----------
+    cache_dir : Path
+        Base directory where cached data was stored.
+
+    step_id : str
+        The step name whose cached results should be loaded.
+
+    Returns
+    -------
+    data_dict : dict
+        Dictionary containing all loaded objects and scalar values.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the specified cache directory does not exist.
+
+    ValueError
+        If an unsupported file type is encountered during loading.
+    """
+    if not cache_dir.exists():
+        raise FileNotFoundError(f"No cache found for: {step_id}")
+
+    data_dict = {}
+    metrics_dict = {}
+
+    for file in cache_dir.iterdir():
+        if not file.is_file():
+            continue
+        if file.name == "_scalars.json":
+            with open(file, "r") as f:
+                scalars = json.load(f)
+                data_dict.update(scalars)
+            continue
+
+        if file.name == "_metrics.json":
+            with open(file, "r") as f:
+                metrics_dict = json.load(f)
+            continue
+
+        key = file.stem
+        suffix = file.suffix
+
+        if suffix == ".parquet":
+            df = pd.read_parquet(file)
+            dtype_path = file.with_suffix('')  # removes '.parquet'
+            dtype_json_path = dtype_path.with_suffix('.dtypes.json')
+            if dtype_json_path.exists():
+                meta = pd.read_json(dtype_json_path, typ="series")
+                for col, dtype in meta.items():
+                    if dtype == "category":
+                        df[col] = df[col].astype("category")
+            data_dict[key] = df 
+        elif suffix == ".npy":
+            data_dict[key] = np.load(file, allow_pickle=True)
+        elif suffix == ".json":
+            with open(file, "r") as f:
+                data_dict[key] = json.load(f)
+        elif suffix == ".pkl":
+            with open(file, "rb") as f:
+                data_dict[key] = joblib.load(f)
+        else:
+            raise ValueError(f"Unsupported file type: {file.name}")
+
+    return data_dict, metrics_dict
 
 
 class Step(metaclass=StepMeta):
@@ -230,13 +320,14 @@ class Step(metaclass=StepMeta):
         outputs : list of str, optional
             The list of output field names this step is expected to produce. Defaults to an empty list.
         """
+        self._returned_outputs = {}
+        self.logged_metrics = {}
+        self.cache_dir = None
+        self.namespace = None
+
         for field in self.params:
             value = kwargs.get(field.name, field.default)
             self.set_parameter(field.name, value)
-
-        self._returned_outputs = {}
-        self.logged_metrics = {}
-        self.namespace = None
 
 
     def set_parameter(self, name, value):
@@ -246,6 +337,9 @@ class Step(metaclass=StepMeta):
                 return
         else:
             raise ValueError(f'Unknown parameter {name} for step {self.name}')
+
+    def set_cache_dir(self, cache_dir):
+        self.cache_dir = cache_dir
 
     def set_namespace(self, namespace):
         self.namespace = namespace
@@ -257,6 +351,57 @@ class Step(metaclass=StepMeta):
             inputs = set([f'{key}_{self.namespace}' for key in inputs])
             outputs = set([f'{key}_{self.namespace}' for key in outputs])
         return inputs, outputs
+    
+
+    def cache_data(self, data_dict: dict):
+        """Cache a dictionary of mixed data types into a structured folder.
+
+        Heavy objects are stored individually with a suitable format, while scalars are grouped into a JSON file.
+
+        Parameters
+        ----------
+        data_dict : dict
+            Dictionary where keys are names (str) and values are the data to be cached.
+
+        Returns
+        -------
+        None
+        """
+        if self.cache_dir is None:
+            return
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+
+        scalar_dict = {}
+
+        for key, value in data_dict.items():
+            file_path = self.cache_dir / key
+
+            if isinstance(value, pd.DataFrame):
+                meta = {col: dtype.name for col, dtype in value.dtypes.items()}
+                value.to_parquet(file_path.with_suffix(".parquet"))
+                meta = {col: dtype.name for col, dtype in value.dtypes.items()}
+                pd.Series(meta).to_json(file_path.with_suffix(".dtypes.json"))
+            elif isinstance(value, np.ndarray):
+                np.save(file_path.with_suffix(".npy"), value)
+            elif isinstance(value, (int, float, str, bool, type(None))):
+                scalar_dict[key] = value
+            elif isinstance(value, (dict, list)) and is_json_serializable(value):
+                with open(file_path.with_suffix(".json"), "w") as f:
+                    json.dump(value, f)
+            else:
+                with open(file_path.with_suffix(".pkl"), "wb") as f:
+                    joblib.dump(value, f)
+
+        if scalar_dict:
+            with open(self.cache_dir / "_scalars.json", "w") as f:
+                scalar_dict = make_json_serializable(scalar_dict)
+                json.dump(scalar_dict, f)
+
+        if self.logged_metrics:
+            with open(self.cache_dir / "_metrics.json", "w") as f:
+                metrics_dict = make_json_serializable(self.logged_metrics)
+                json.dump(metrics_dict, f)
+
 
     def run(self, inputs: dict[str, any]) -> dict[str, any]:
         """
@@ -308,8 +453,17 @@ class Step(metaclass=StepMeta):
         self._returned_outputs = {}
         self.logged_metrics = {}
 
+        execution_data_file = (self.cache_dir / '_executed.json')
+        execution_data = load_json(execution_data_file)
+
         # Execute the step
-        fun_outputs = self._execute(namespaced_inputs)
+        if execution_data_file.exists():
+            data_dict, metrics_dict = load_cached_data(self.cache_dir)
+            self.logged_metrics = metrics_dict
+            return data_dict
+
+        fun_outputs, mem_usage, time_usage = profile_function(self._execute, namespaced_inputs)
+
         if fun_outputs is not None:
             warnings.warn(f'[Step {self.name}] Method _execute should return nothing.')
 
@@ -321,6 +475,14 @@ class Step(metaclass=StepMeta):
             }
         else:
             namespaced_outputs = base_outputs
+
+        if self.cache_dir:
+            dump_json(execution_data_file, {
+                'time_usage': time_usage,
+                'mem_usage': mem_usage,
+                'ptyhon_env': get_current_env(),
+            })
+            self.cache_data(namespaced_outputs)
 
         # Optionally: check for unexpected outputs
         unexpected = set(base_outputs.keys()) - set(field.name for field in self.outputs)

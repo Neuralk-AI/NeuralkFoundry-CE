@@ -9,82 +9,8 @@ from typing import List
 import warnings
 
 from .step import Step
-from .utils import make_json_serializable, notebook_display
+from .utils import notebook_display
 from ..utils.logging import log
-
-
-def load_cached_data(cache_dir: Path, step_id: str) -> dict:
-    """Load cached data stored by `cache_data`.
-
-    This function reads the cache folder created for a given step and loads:
-    - Heavy objects stored as `.parquet`, `.npy`, or `.pkl`
-    - Scalar values grouped into `_scalars.json`
-
-    Parameters
-    ----------
-    cache_dir : Path
-        Base directory where cached data was stored.
-
-    step_id : str
-        The step name whose cached results should be loaded.
-
-    Returns
-    -------
-    data_dict : dict
-        Dictionary containing all loaded objects and scalar values.
-
-    Raises
-    ------
-    FileNotFoundError
-        If the specified cache directory does not exist.
-
-    ValueError
-        If an unsupported file type is encountered during loading.
-    """
-    step_dir = cache_dir / step_id
-    if not step_dir.exists():
-        raise FileNotFoundError(f"No cache found for: {step_id}")
-
-    data_dict = {}
-    metrics_dict = {}
-
-    for file in step_dir.iterdir():
-        if file.name == "_scalars.json":
-            with open(file, "r") as f:
-                scalars = json.load(f)
-                data_dict.update(scalars)
-            continue
-
-        if file.name == "_metrics.json":
-            with open(file, "r") as f:
-                metrics_dict = json.load(f)
-            continue
-
-        key = file.stem
-        suffix = file.suffix
-
-        if suffix == ".parquet":
-            df = pd.read_parquet(file)
-            dtype_path = file.with_suffix('')  # removes '.parquet'
-            dtype_json_path = dtype_path.with_suffix('.dtypes.json')
-            if dtype_json_path.exists():
-                meta = pd.read_json(dtype_json_path, typ="series")
-                for col, dtype in meta.items():
-                    if dtype == "category":
-                        df[col] = df[col].astype("category")
-            data_dict[key] = df 
-        elif suffix == ".npy":
-            data_dict[key] = np.load(file, allow_pickle=True)
-        elif suffix == ".json":
-            with open(file, "r") as f:
-                data_dict[key] = json.load(f)
-        elif suffix == ".pkl":
-            with open(file, "rb") as f:
-                data_dict[key] = joblib.load(f)
-        else:
-            raise ValueError(f"Unsupported file type: {file.name}")
-
-    return data_dict, metrics_dict
 
 
 def set_seed(seed: int = 42) -> None:
@@ -117,14 +43,6 @@ def set_seed(seed: int = 42) -> None:
         tf.random.set_seed(seed)
     except ImportError:
         pass
-
-
-def is_json_serializable(obj):
-    try:
-        json.dumps(obj)
-        return True
-    except (TypeError, OverflowError):
-        return False
 
 
 class WorkFlow:
@@ -203,58 +121,7 @@ class WorkFlow:
         return sane
 
 
-    def cache_data(self, step_id: str, data_dict: dict, metrics_dict: dict):
-        """Cache a dictionary of mixed data types into a structured folder.
 
-        Heavy objects are stored individually with a suitable format, while scalars are grouped into a JSON file.
-
-        Parameters
-        ----------
-        step_id : str
-            Unique name for the current step; used to create a subdirectory inside `cache_dir`.
-
-        data_dict : dict
-            Dictionary where keys are names (str) and values are the data to be cached.
-
-        Returns
-        -------
-        None
-        """
-        if self.cache_dir is None:
-            return
-        step_dir = self.cache_dir / step_id
-        step_dir.mkdir(parents=True, exist_ok=True)
-
-        scalar_dict = {}
-
-        for key, value in data_dict.items():
-            file_path = step_dir / key
-
-            if isinstance(value, pd.DataFrame):
-                meta = {col: dtype.name for col, dtype in value.dtypes.items()}
-                value.to_parquet(file_path.with_suffix(".parquet"))
-                meta = {col: dtype.name for col, dtype in value.dtypes.items()}
-                pd.Series(meta).to_json(file_path.with_suffix(".dtypes.json"))
-            elif isinstance(value, np.ndarray):
-                np.save(file_path.with_suffix(".npy"), value)
-            elif isinstance(value, (int, float, str, bool, type(None))):
-                scalar_dict[key] = value
-            elif isinstance(value, (dict, list)) and is_json_serializable(value):
-                with open(file_path.with_suffix(".json"), "w") as f:
-                    json.dump(value, f)
-            else:
-                with open(file_path.with_suffix(".pkl"), "wb") as f:
-                    joblib.dump(value, f)
-
-        if scalar_dict:
-            with open(step_dir / "_scalars.json", "w") as f:
-                scalar_dict = make_json_serializable(scalar_dict)
-                json.dump(scalar_dict, f)
-
-        if metrics_dict:
-            with open(step_dir / "_metrics.json", "w") as f:
-                metrics_dict = make_json_serializable(metrics_dict)
-                json.dump(metrics_dict, f)
 
 
     def run(self, init_data: dict) -> tuple[dict, dict]:
@@ -289,22 +156,21 @@ class WorkFlow:
 
         data = copy.copy(init_data)
         metrics = {}
+        cache_dir = self.cache_dir
 
         for i_step, step in enumerate(self.steps):
             step_id = f'{i_step}_{step.name}'
 
             # Check if the output exists which indicates that the step ran successfuly
-            if self.cache_dir and (self.cache_dir / step_id).exists():
-                new_data, new_metrics = load_cached_data(self.cache_dir, step_id)
-            else:
-                # In case the seed is not set in the step, best effort to ensure reproducibility
-                set_seed(i_step)
-                new_data = step.run(data)
-                new_metrics = step.logged_metrics
-                self.cache_data(step_id, new_data, new_metrics)
+            cache_dir = cache_dir / step_id
+            step.set_cache_dir(cache_dir)
+
+            # In case the seed is not set in the step, best effort to ensure reproducibility
+            set_seed(i_step)
+            new_data = step.run(data)
 
             data.update(new_data)
-            metrics[step.name] = new_metrics
+            metrics[step.name] = copy.copy(step.logged_metrics)
 
         return data, metrics
     
