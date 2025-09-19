@@ -1,6 +1,7 @@
 from .base import ClassifierModel
 from ...utils.splitting import with_masked_split
 import numpy as np
+from ...config import global_config
 
 
 class CatBoostClassifier(ClassifierModel):
@@ -54,6 +55,9 @@ class CatBoostClassifier(ClassifierModel):
         }
         if 'categorical_features' in inputs:
             params['cat_features'] = inputs['categorical_features']
+
+        if global_config.device == 'cuda':
+            params['task_type'] = 'GPU'
         return params
 
 

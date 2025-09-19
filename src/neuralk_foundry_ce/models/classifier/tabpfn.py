@@ -24,8 +24,8 @@ class TabPFNClassifier(ClassifierModel):
 
     Notes
     -----
-    Requires `tabpfn` to be installed.
     Only supports classification tasks with up to 10000 training examples, 10 classes, and 500 features.
+    For now, detects automatically the device, so we do not load it from config.
     """
     name = 'tabpfn-classifier'
 

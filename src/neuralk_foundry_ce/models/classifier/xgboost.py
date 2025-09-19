@@ -1,6 +1,7 @@
 import numpy as np
 from .base import ClassifierModel
 from ...utils.splitting import with_masked_split
+from ...config import global_config
 
 
 class XGBoostClassifier(ClassifierModel):
@@ -58,6 +59,8 @@ class XGBoostClassifier(ClassifierModel):
 
         if np.unique(inputs['y']).shape[0] >= 3:
             params['objective'] = 'multi:softprob'
+
+        params['device'] = global_config.device
 
         return params 
 

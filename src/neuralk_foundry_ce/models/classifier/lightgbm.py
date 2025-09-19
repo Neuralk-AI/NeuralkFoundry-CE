@@ -1,7 +1,10 @@
-from .base import ClassifierModel
-from ...utils.splitting import with_masked_split
 import numpy as np
 import torch
+
+
+from .base import ClassifierModel
+from ...utils.splitting import with_masked_split
+from ...config import global_config
 
 
 class LightGBMClassifier(ClassifierModel):
@@ -55,6 +58,9 @@ class LightGBMClassifier(ClassifierModel):
             "metric": "binary_logloss" if is_binary else "multi_logloss",
             "verbose": -1,
         }
+        if global_config.device == 'cuda':
+            params['device'] = 'gpu'
+
         return params
 
 
