@@ -72,7 +72,7 @@ class CrossEntropy(Metric):
         if not 'y_score' in kwargs:
             raise ValueError("y_score must be provided for cross entropy calculation.")
         y_score = kwargs['y_score']
-        if y_score.shape[1] == 2 and y_score.shape[1] > 1:
+        if len(y_score.shape) == 2 and y_score.shape[1] == 2 and y_score.shape[1] > 1:
             y_score = y_score[:, 1]
         return log_loss(y_true, y_score, labels=kwargs.get('labels', None))
 
@@ -237,7 +237,7 @@ class HingeLossMetric(Metric):
             Hinge loss.
         """
         y_true, y_score = self._requires(kwargs, "y_true", "y_score")
-        if y_score.shape[1] == 2 and y_score.shape[1] > 1:
+        if len(y_score.shape) == 2 and y_score.shape[1] == 2 and y_score.shape[1] > 1:
             y_score = y_score[:, 1]
         return hinge_loss(y_true, y_score, labels=kwargs.get('labels', None))
 
@@ -264,7 +264,7 @@ class ROCAUC(Metric):
             ROC-AUC score.
         """
         y_true, y_score = self._requires(kwargs, "y_true", "y_score")
-        if y_score.shape[1] == 2 and y_score.shape[1] > 1:
+        if len(y_score.shape) == 2 and y_score.shape[1] == 2 and y_score.shape[1] > 1:
             y_score = y_score[:, 1]
         return roc_auc_score(
             y_true, y_score, multi_class='ovo', 

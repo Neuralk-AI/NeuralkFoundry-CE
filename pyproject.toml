@@ -41,6 +41,8 @@ dependencies = [
     "catboost>=1.2.8",
     "tabpfn>=2.0.8",
     "tabpfn_extensions",
+    "autogluon>=1.4.0",
+    "tabrepo[benchmark] @ git+https://github.com/autogluon/tabrepo.git@main",
     
 
     # Utils
