@@ -1,8 +1,15 @@
 import numpy as np
 import pandas as pd
 import copy
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.utils.data import DataLoader, TensorDataset
+
 from .base import ClassifierModel
 from ...utils.splitting import with_masked_split, Split
+from ...config import global_config
 
 
 class MLPClassifier(ClassifierModel):
@@ -31,10 +38,6 @@ class MLPClassifier(ClassifierModel):
         super().__init__()
 
     def init_model(self, config):
-        import torch
-        import torch.nn as nn
-        import torch.nn.functional as F
-
         config = copy.copy(config)
 
         self.categorical_features = config.get('categorical_features', [])
@@ -116,10 +119,7 @@ class MLPClassifier(ClassifierModel):
 
 
     def train(self, X, y, split_mask, splits):
-        import torch
-        from torch.utils.data import DataLoader, TensorDataset
-
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device = global_config.device
 
         mask_train = np.isin(split_mask, Split.TRAIN)
         mask_val = np.isin(split_mask, Split.VAL)
@@ -201,9 +201,7 @@ class MLPClassifier(ClassifierModel):
 
     @with_masked_split
     def forward(self, X):
-        import torch
-
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device = global_config.device
         X_num, X_cat = self._preprocess(X, is_train=False)
 
         with torch.no_grad():

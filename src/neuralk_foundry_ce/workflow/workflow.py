@@ -162,8 +162,9 @@ class WorkFlow:
             step_id = f'{i_step}_{step.name}'
 
             # Check if the output exists which indicates that the step ran successfuly
-            cache_dir = cache_dir / step_id
-            step.set_cache_dir(cache_dir)
+            if cache_dir:
+                cache_dir = cache_dir / step_id
+                step.set_cache_dir(cache_dir)
 
             # In case the seed is not set in the step, best effort to ensure reproducibility
             set_seed(i_step)

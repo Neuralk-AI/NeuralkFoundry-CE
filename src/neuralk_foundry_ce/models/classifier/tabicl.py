@@ -1,5 +1,6 @@
 from .base import ClassifierModel
 from ...utils.splitting import with_masked_split
+from ...config import global_config
 
 
 class TabICLClassifier(ClassifierModel):
@@ -16,10 +17,6 @@ class TabICLClassifier(ClassifierModel):
     -------
     - y_pred : Predicted class labels.
     - y_score : Class probabilities (stored in `extras`).
-
-    Notes
-    -----
-    Requires `tabicl` to be installed.
     """  
     name = 'tabicl-classifier'
 
@@ -38,6 +35,7 @@ class TabICLClassifier(ClassifierModel):
 
     def init_model(self, config):
         from tabicl import TabICLClassifier
+        config['device'] = global_config.device
 
         self.model = TabICLClassifier(**config)
         self.config = config
