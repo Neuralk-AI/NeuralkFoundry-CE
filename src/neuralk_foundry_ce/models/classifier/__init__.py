@@ -11,6 +11,11 @@ from .tabpfn import TabPFNClassifier
 from .base import ClassifierModel
 from .tabicl import TabICLClassifier
 from .mlp import MLPClassifier
+from .modern_nca import ModernNCAClassifier
+from .randomforest import RandForestClassifier
+from .knn import KNNClassifier
+from .realmlp import RealMLPClassifier
+from .tabm import TabMClassifier
 
 
 __all__ = [
@@ -21,4 +26,9 @@ __all__ = [
     'TabICLClassifier',
     'ClassifierModel',
     'MLPClassifier',
+    'ModernNCAClassifier',
+    'RandForestClassifier',
+    'KNNClassifier',
+    'RealMLPClassifier',
+    'TabMClassifier',
 ]

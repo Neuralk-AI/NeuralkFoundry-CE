@@ -91,13 +91,16 @@ class BaseModel(Step):
   
         if 'y_score' in self.extras:
             y_score = self.extras['y_score']
-            y_score_all = -np.ones((X.shape[0], y_score.shape[1]), dtype=y_score.dtype)
+            if len(y_score.shape) == 1:
+                y_score_all = -np.ones((X.shape[0],), dtype=y_score.dtype)
+            else :
+                y_score_all = -np.ones((X.shape[0], y_score.shape[1]), dtype=y_score.dtype)
             y_score_all[~np.isin(np.array(splits[0]), Split.NONE)] = y_score
             
             # Sklearn checking that the sum of probabilities equals one is too
             # strict. We add a looser version here.
 
-            y_prob_sum = y_score_all.sum(axis=1)
+            y_prob_sum = y_score_all.sum(axis=-1)
             if np.allclose(y_prob_sum, 1, rtol=1e-5):
                 # It's close enough, we renormalize to avoid the sklearn warning.
                 y_score_all = y_score_all / y_prob_sum[0, None]
