@@ -92,8 +92,6 @@ class MLPClassifier(ClassifierModel):
 
 
     def _preprocess(self, X, is_train=False):
-        import torch
-
         X_cat_vals = []
 
         for col in self.categorical_features:

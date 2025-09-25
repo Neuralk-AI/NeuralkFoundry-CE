@@ -32,6 +32,7 @@ class XGBoostClassifier(ClassifierModel):
 
     def __init__(self):
         super().__init__()
+        self.n_ensemble = 10
 
     def init_model(self, config):
         import xgboost as xgb
