@@ -49,7 +49,7 @@ class BaseModel(Step):
     ]
 
     params = [
-        Field('n_hyperopt_trials', 'Number of trials attempted for hyperparameter optimization', default=20),
+        Field('n_hyperopt_trials', 'Number of trials attempted for hyperparameter optimization', default=200),
     ]
 
     def _correct_predicted_proba(self, y_score):
