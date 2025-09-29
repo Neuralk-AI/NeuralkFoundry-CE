@@ -44,12 +44,13 @@ class ModernNCAClassifier(ClassifierModel):
         self.extras['y_score'] = self.model.predict_proba(X)
         return self.model.predict(X)
 
-    def get_fixed_params(self, tags):
+    def get_fixed_params(self, inputs):
         return {
             "num_cpus": 1, 
             "num_gpus": 1,
             "verbosity": 0,
+            "cat_col_names": inputs['categorical_features'],
         }
     
-    def get_model_params(self, trial, tags):
+    def get_model_params(self, trial, inputs):
         return {}
