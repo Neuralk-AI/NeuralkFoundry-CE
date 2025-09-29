@@ -55,7 +55,7 @@ class BaseModel(Step):
     def _correct_predicted_proba(self, y_score):
         if len(y_score.shape) == 1:
             # assume binary classification and proba for class 1.
-            y_score = np.vstack([1 - y_score, y_score])
+            y_score = np.vstack([1 - y_score, y_score]).T
 
         # Sklearn checking that the sum of probabilities equals one is too
         # strict. We add a looser version here.
