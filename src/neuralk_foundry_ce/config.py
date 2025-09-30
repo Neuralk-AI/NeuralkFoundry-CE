@@ -3,15 +3,20 @@ import torch
 
 class _Config:
     def __init__(self):
-        self.device = "cpu"
+        self.config = {}
+
+        self.config['device'] = "cpu"
+        self.config['ensemble'] = False
+        self.config['n_hp_search'] = 5
         if torch.cuda.is_available():
             print('GPU detected, switching to GPU compute by default')
-            self.device = "cuda"
+            self.config['device'] = "cuda"
 
-    def set_device(self, device: str):
-        self.device = device
+    def set(self, name, value):
+        self.config[name] = value
 
-    def __repr__(self):
-        return f"<Config device={self.device}>"
+    def get(self, name, default=None):
+        return self.config.get(name, default=None)
+
 
 global_config = _Config()

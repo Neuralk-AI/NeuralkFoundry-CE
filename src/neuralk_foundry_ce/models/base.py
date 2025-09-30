@@ -4,6 +4,7 @@ from typing import Any, Callable, Dict, Iterable, Optional, Tuple
 
 from functools import wraps
 import numpy as np
+from config import global_config
 
 from ..utils.splitting import Split
 from ..utils.execution import profile_function
@@ -174,11 +175,17 @@ class BaseModel(Step):
         metrics = type(self).get_metrics()
         self.extras = {}
         n_ensemble = getattr(self, 'n_ensemble', None)
+        cfg_ensemble =global_config.get('ensemble', default=True)
+        if not cfg_ensemble:
+            n_ensemble = None
 
         if not hasattr(self, 'tunable') or self.tunable:
 
+            n_hyperopt_trials = global_config.get('n_hyperopt_trials',
+                                                  default=self.n_hyperopt_trials)
+
             best_trial, ensemble = hyperoptimize(
-                {'n_trials': self.n_hyperopt_trials},
+                {'n_trials': n_hyperopt_trials},
                 self,
                 X, y,
                 splits,

@@ -57,4 +57,5 @@ class TabMClassifier(ClassifierModel):
             "weight_decay": trial.suggest_float("weight_decay", 1e-4, 1e-1, log=True),
             "dropout": trial.suggest_float("dropout", 0.0, 0.5),
             "d_embedding": trial.suggest_int("d_embedding", 8, 32, step=4),
+            "d_block": trial.suggest_int("d_embedding", 128, 1024, step=16),
         }

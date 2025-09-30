@@ -101,7 +101,7 @@ def _extract_truth(store_items: List[Dict[str, Any]]) -> np.ndarray:
     """
     if not store_items:
         raise ValueError("Store is empty; nothing to ensemble.")
-    y_trues = [_as_2d(item["y"]) for item in store_items]
+    y_trues = [(item["y"]) for item in store_items]
 
     y_ref = None
     for i, y in enumerate(y_trues):
