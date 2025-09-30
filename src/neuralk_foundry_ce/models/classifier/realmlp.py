@@ -1,6 +1,7 @@
 from .base import ClassifierModel
 from ...utils.splitting import with_masked_split
 import pandas as pd
+import numpy as np 
 
 class RealMLPClassifier(ClassifierModel):
     """
@@ -21,30 +22,43 @@ class RealMLPClassifier(ClassifierModel):
     -----
     Requires `autogluon` to be installed.
     """  
-    name = "realmlp-s-classifier"
+    name = "realmlp-classifier"
 
     def __init__(self):
         super().__init__()
         self.tunable = False
 
     def init_model(self, config):
-        from autogluon.tabular.models.realmlp.realmlp_model import RealMLPModel 
-
         self.config = config
-        self.model = RealMLPModel(hyperparameters={"default_hyperparameters": "td_s"}, **config)
 
     @with_masked_split
     def train(self, X, y):
-        
-        self.model.fit(X=X, y=pd.Series(y))
+        from autogluon.tabular import TabularPredictor
 
+        self.label = "target"
+        self.model = TabularPredictor(label =self.label)
+        X = X.reset_index(drop=True)
+        y = pd.Series(y).reset_index(drop=True)
+
+        df_train = X.copy()
+        df_train[self.label] = y
+        hyperparams = {"REALMLP": {},
+                        }
+    
+        self.model.fit(
+            train_data = df_train,
+            hyperparameters = hyperparams,
+        )
     @with_masked_split
     def forward(self, X):
-        self.extras['y_score'] = self.model.predict_proba(X)
-        return self.model.predict(X)
+        X = X.reset_index(drop=True)
+        self.extras['y_score'] = np.array(self.model.predict_proba(X))
+        return np.array(self.model.predict(X))
 
     def get_fixed_params(self, tags):
-        return { }
+        return {
+            "verbosity": 0,
+        }
     
     def get_model_params(self, trial, tags):
         return { }

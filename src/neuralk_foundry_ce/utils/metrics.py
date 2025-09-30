@@ -21,7 +21,10 @@ from sklearn.metrics import (
     auc,
     confusion_matrix,
     jaccard_score,
-    accuracy_score
+    accuracy_score,
+    brier_score_loss,
+    matthews_corrcoef,
+    d2_log_loss_score
 )
 from scipy.spatial.distance import cdist, pdist, euclidean
 
@@ -269,6 +272,166 @@ class ROCAUC(Metric):
         return roc_auc_score(
             y_true, y_score, multi_class='ovo', 
             labels=kwargs.get('labels', None))
+
+
+class BrierScoreLoss(Metric):
+    desc = "Brier Score "
+    maximize = False
+
+    def __call__(self, **kwargs):
+        """
+        Computes the Brier score.
+
+        Parameters
+        ----------
+        y_true : array-like of shape (n_samples,)
+            Ground truth binary labels.
+
+        y_proba : array-like of shape (n_samples,) or (n_samples, n_classes)
+            Predicted probabilities.
+
+        Returns
+        -------
+        score : float
+            Brier score.
+        """
+        y_true, y_proba = self._requires(kwargs, "y_true", "y_score")
+        if len(y_proba.shape) == 2 and y_proba.shape[1] == 2 and y_proba.shape[1] > 1:
+            y_proba = y_proba[:, 1]
+        return brier_score_loss(y_true, y_proba)
+
+class MatthewsCorrelation(Metric):
+    desc = "Matthews correlation coefficient (MCC)"
+    maximize = True
+
+    def __call__(self, **kwargs):
+        """
+        Computes the Matthews correlation coefficient (MCC).
+
+        Parameters
+        ----------
+        y_true : array-like of shape (n_samples,)
+            Ground truth binary labels.
+
+        y_proba : array-like of shape (n_samples,) or (n_samples, n_classes)
+            Predicted probabilities.
+
+        Returns
+        -------
+        score : float
+            Matthews correlation score.
+        """
+        y_true, y_proba = self._requires(kwargs, "y_true", "y_score")
+        if len(y_proba.shape) == 2 and y_proba.shape[1] == 2 and y_proba.shape[1] > 1:
+            y_proba = y_proba[:, 1]
+        return matthews_corrcoef(y_true, y_proba)
+
+class D2Score(Metric):
+    desc = "D2 score"
+    maximize = True
+
+    def __call__(self, **kwargs):
+        """
+        Computes the D2 score, the R2 score equivalent for classification.
+
+        Parameters
+        ----------
+        y_true : array-like of shape (n_samples,)
+            Ground truth binary labels.
+
+        y_proba : array-like of shape (n_samples,) or (n_samples, n_classes)
+            Predicted probabilities.
+
+        Returns
+        -------
+        score : float
+            D2 score.
+        """
+        y_true, y_proba = self._requires(kwargs, "y_true", "y_score")
+        if len(y_proba.shape) == 2 and y_proba.shape[1] == 2 and y_proba.shape[1] > 1:
+            y_proba = y_proba[:, 1]
+        return d2_log_loss_score(y_true, y_proba)
+
+
+class PrecisionAtK(Metric):
+    desc = "Precision@K"
+    maximize = True
+
+    def __call__(self, k=3, **kwargs):
+        """
+        Computes the Precision at K value
+
+        Parameters
+        ----------
+        y_true : array-like of shape (n_samples,)
+            Ground truth binary labels.
+
+        y_proba : array-like of shape (n_samples,) or (n_samples, n_classes)
+            Predicted probabilities.
+
+        Returns
+        -------
+        score : float
+            Pr@K score.
+        """
+        y_true, y_proba = self._requires(kwargs, "y_true", "y_score")
+        if len(y_proba.shape) == 2 and y_proba.shape[1] == 2 and y_proba.shape[1] > 1:
+            y_proba = y_proba[:, 1]
+        
+        top_k_preds = np.argsort(y_proba, axis=1)[:, -k:]
+        correct = 0
+        n_samples = len(y_true)
+
+        for i in range(n_samples):
+            if y_true[i] in top_k_preds[i]:
+                correct += 1
+    
+        return correct / n_samples
+        
+
+
+class RecallAtK(Metric):
+    desc = "Recall@K"
+    maximize = True
+    
+    def __call__(self, k=3, **kwargs):
+        """
+        Computes the Recall at K value
+
+        Parameters
+        ----------
+        y_true : array-like of shape (n_samples,)
+            Ground truth binary labels.
+
+        y_proba : array-like of shape (n_samples,) or (n_samples, n_classes)
+            Predicted probabilities.
+
+        Returns
+        -------
+        score : float
+            Recall@K
+        """
+        y_true, y_proba = self._requires(kwargs, "y_true", "y_score")
+        if len(y_proba.shape) == 2 and y_proba.shape[1] == 2 and y_proba.shape[1] > 1:
+            y_proba = y_proba[:, 1]
+       
+        n_samples, n_classes = y_scores.shape
+        recalls = []
+
+    
+        top_k_preds = np.argsort(y_scores, axis=1)[:, -k:]
+
+        for i in range(n_samples):
+            true_labels = np.where(y_true[i] == 1)[0]
+            if len(true_labels) == 0:
+                return 0.0
+
+            retrieved = len(set(top_k_preds[i]) & set(true_labels))
+            recall_i = retrieved / len(true_labels)
+            recalls.append(recall_i)
+
+        return np.mean(recalls)
+
 
 
 # Regression metrics

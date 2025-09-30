@@ -1,6 +1,7 @@
 from .base import ClassifierModel
 from ...utils.splitting import with_masked_split
 import pandas as pd
+import numpy as np
 
 class TabMClassifier(ClassifierModel):
     """
@@ -25,30 +26,39 @@ class TabMClassifier(ClassifierModel):
 
     def __init__(self):
         super().__init__()
-
+        self.tunable = False
+        
     def init_model(self, config):
-        from autogluon.tabular.models.tabm.tabm_model import TabMModel 
-
         self.config = config
-        self.model = TabMModel()
 
     @with_masked_split
     def train(self, X, y):
-        self.model.fit(X=X, y=pd.Series(y), **self.config)
+        from autogluon.tabular import TabularPredictor
+
+        self.label = "target"
+        self.model = TabularPredictor(label =self.label)
+        X = X.reset_index(drop=True)
+        y = pd.Series(y).reset_index(drop=True)
+
+        df_train = X.copy()
+        df_train[self.label] = y
+        hyperparams = {"TABM": {},
+                        }
+    
+        self.model.fit(
+            train_data = df_train,
+            hyperparameters = hyperparams,
+        )
 
     @with_masked_split
     def forward(self, X):
-        self.extras['y_score'] = self.model.predict_proba(X)
-        return self.model.predict(X)
+        X = X.reset_index(drop=True)
+        self.extras['y_score'] = np.array(self.model.predict_proba(X))
+        return np.array(self.model.predict(X))
 
     def get_fixed_params(self, tags):
         return {
-            "patience": 16,
-            "amp": False,
-            "arch_type": "tabm-mini",
-            "tabm_k":32,
-            "gradient_clipping_norm": 1.0,
-            "share_training_batches": False,
+            "verbosity": 0,
          }
     
     def get_model_params(self, trial, tags): # According to TabArena Hyperparameter search space
