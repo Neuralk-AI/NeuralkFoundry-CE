@@ -4,8 +4,8 @@ from typing import Any, Callable, Dict, Iterable, Optional, Tuple
 
 from functools import wraps
 import numpy as np
-from config import global_config
 
+from ..config import global_config
 from ..utils.splitting import Split
 from ..utils.execution import profile_function
 from .hyperopt import hyperoptimize
