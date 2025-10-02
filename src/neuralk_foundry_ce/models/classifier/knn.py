@@ -24,6 +24,7 @@ class KNNClassifier(ClassifierModel):
 
     def __init__(self):
         super().__init__()
+        self.n_ensemble = 50
 
     def init_model(self, config):
         from sklearn.neighbors import KNeighborsClassifier
