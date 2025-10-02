@@ -1,5 +1,4 @@
 import numpy as np
-import cupy as cp
 from .base import ClassifierModel
 from ...utils.splitting import with_masked_split
 from ...config import global_config
