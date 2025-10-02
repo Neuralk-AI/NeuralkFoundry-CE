@@ -4,8 +4,8 @@ import torch
 class _Config:
     def __init__(self):
         self.device = "cpu"
-        self.ensemble = False
-        self.n_hyperopt_trials = 5
+        self.ensemble = True
+        self.n_hyperopt_trials = 200
         if torch.cuda.is_available():
             print('GPU detected, switching to GPU compute by default')
             self.device = "cuda"

@@ -32,6 +32,7 @@ class CatBoostClassifier(ClassifierModel):
 
     def __init__(self):
         super().__init__()
+        self.n_ensemble = 50
 
     def init_model(self, config):
         from catboost import CatBoostClassifier as _CatBoostClassifier

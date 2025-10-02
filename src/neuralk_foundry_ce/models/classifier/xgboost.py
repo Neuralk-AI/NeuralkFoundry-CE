@@ -1,4 +1,5 @@
 import numpy as np
+import cupy as cp
 from .base import ClassifierModel
 from ...utils.splitting import with_masked_split
 from ...config import global_config
@@ -42,18 +43,18 @@ class XGBoostClassifier(ClassifierModel):
 
     @with_masked_split
     def train(self, X, y):
-        self.model.fit(X, y)
+        self.model.fit(cp.array(X), cp.array(y))
 
     @with_masked_split
     def forward(self, X):
-        self.extras['y_score'] = self.model.predict_proba(X)
-        return self.model.predict(X)
+        y_score = self.model.predict_proba(cp.array(X))
+        self.extras['y_score'] = y_score
+        return np.argmax(y_score, axis=1)
 
     def get_fixed_params(self, inputs):
         params = {
             "objective": "binary:logistic",
             "eval_metric": "auc",
-            #"scale_pos_weight": 0.97 / 0.03,
         }
         if any(inputs['X'].dtypes == 'category'):
             params['enable_categorical'] = True
@@ -62,6 +63,7 @@ class XGBoostClassifier(ClassifierModel):
             params['objective'] = 'multi:softprob'
 
         params['device'] = global_config.device
+        params['n_jobs'] = -1
 
         return params 
 
