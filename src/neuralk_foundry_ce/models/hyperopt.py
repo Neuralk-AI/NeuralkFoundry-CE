@@ -311,6 +311,7 @@ def objective(
     - If an exception occurs during training or evaluation, the trial is marked as failed.
     """    """Objective function for Optuna hyperparameter optimization, including preprocessing."""
     
+    print('Trial:', trial._trial_id)
     model_params = model.get_model_params(trial, inputs) | model.get_fixed_params(inputs)
     print('Trial:', trial._trial_id)
 
@@ -384,6 +385,7 @@ def hyperoptimize(optuna_kwargs, model, X, y, splits, metrics, inputs, n_ensembl
             inputs,
             store=store
         ),
+        timeout=3600 * 4,
         **optuna_kwargs
     )
 

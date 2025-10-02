@@ -57,6 +57,9 @@ class LightGBMClassifier(ClassifierModel):
         params = {
             "objective": "binary" if is_binary else "multiclass",
             "metric": "binary_logloss" if is_binary else "multi_logloss",
+            "feature_pre_filter": True,
+            "min_gain_to_split": 0.1,
+
             "verbose": -1,
         }
         if global_config.device == 'cuda':
@@ -69,6 +72,9 @@ class LightGBMClassifier(ClassifierModel):
         return {
             "n_estimators": trial.suggest_int("n_estimators", 100, 1000),
             "max_depth": trial.suggest_int("max_depth", 3, 12),
+            "num_leaves": trial.suggest_int("num_leaves", 7, 31),
+            "bagging_fraction": trial.suggest_float("bagging_fraction", 0.5, 1.0),
+            "feature_fraction": trial.suggest_float("feature_fraction", 0.5, 1.0),
             "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.3, log=True),
             "reg_lambda": trial.suggest_float("reg_lambda", 1e-3, 10),
             "reg_alpha": trial.suggest_float("reg_alpha", 1e-3, 10),
