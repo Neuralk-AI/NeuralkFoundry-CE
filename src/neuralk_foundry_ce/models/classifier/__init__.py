@@ -16,6 +16,7 @@ from .randomforest import RandForestClassifier
 from .knn import KNNClassifier
 from .realmlp import RealMLPClassifier
 from .tabm import TabMClassifier
+from .dummy import DummyClassifier
 
 
 __all__ = [
@@ -31,4 +32,5 @@ __all__ = [
     'KNNClassifier',
     'RealMLPClassifier',
     'TabMClassifier',
+    'DummyClassifier',
 ]
