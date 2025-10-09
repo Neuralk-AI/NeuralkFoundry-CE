@@ -26,7 +26,8 @@ class TabMClassifier(ClassifierModel):
 
     def __init__(self):
         super().__init__()
-        self.tunable = False
+        self.tunable = True
+        self.n_ensemble = 50
         
     def init_model(self, config):
         self.config = config
