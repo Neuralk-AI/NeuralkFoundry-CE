@@ -25,6 +25,7 @@ class DummyClassifier(ClassifierModel):
 
     def __init__(self):
         super().__init__()
+        self.tunable = False
 
     def init_model(self, config):
         self.config = config
