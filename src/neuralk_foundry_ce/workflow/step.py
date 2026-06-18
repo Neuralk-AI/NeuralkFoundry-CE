@@ -460,29 +460,32 @@ class Step(metaclass=StepMeta):
         self._returned_outputs = {}
         self.logged_metrics = {}
 
-        execution_data_file = (self.cache_dir / '_executed.json')
-        execution_data = load_json(execution_data_file)
+        # Cache-related setup is only meaningful when a cache_dir was wired up
+        # by the workflow. Without one (the in-memory / no-cache mode), we
+        # skip the load + invalidation paths entirely and go straight to
+        # executing the step.
+        execution_data_file = None
+        if self.cache_dir is not None:
+            execution_data_file = self.cache_dir / '_executed.json'
 
-        # Execute the step
-        if execution_data_file.exists():
-            try:
-                data_dict, metrics_dict = load_cached_data(self.cache_dir)
-                # Validate required outputs are present
-                expected = {f.name for f in self.outputs}
-                if self.namespace:
-                    expected = {f"{name}_{self.namespace}" for name in expected}
-                missing = expected - set(data_dict.keys())
-                if missing:
-                    raise ValueError(f"Cache missing outputs: {missing}")
-                self.logged_metrics = metrics_dict
-                return data_dict
-            except Exception:
-                # Cache is incomplete — re-execute the step
-                execution_data_file.unlink(missing_ok=True)
+            # Execute the step from cache if marker exists and is valid.
+            if execution_data_file.exists():
+                try:
+                    data_dict, metrics_dict = load_cached_data(self.cache_dir)
+                    expected = {f.name for f in self.outputs}
+                    if self.namespace:
+                        expected = {f"{name}_{self.namespace}" for name in expected}
+                    missing = expected - set(data_dict.keys())
+                    if missing:
+                        raise ValueError(f"Cache missing outputs: {missing}")
+                    self.logged_metrics = metrics_dict
+                    return data_dict
+                except Exception:
+                    # Cache is incomplete — re-execute the step.
+                    execution_data_file.unlink(missing_ok=True)
 
-        # If we reach here, this step will re-execute. Invalidate downstream caches
-        # so they don't use stale data.
-        if self.cache_dir:
+            # If we reach here this step will re-execute. Invalidate downstream
+            # caches so they don't use stale data.
             for child_marker in self.cache_dir.rglob('_executed.json'):
                 if child_marker != execution_data_file:
                     child_marker.unlink(missing_ok=True)
