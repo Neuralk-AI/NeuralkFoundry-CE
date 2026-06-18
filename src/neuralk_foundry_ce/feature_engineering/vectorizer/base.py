@@ -34,12 +34,15 @@ class BaseVectorizer(Step):
         To be implemented by subclasses. Applies the vectorization logic.
     """
     name = 'vectorizer'
+    # Vectorization outputs are reproducible and cheap to regenerate; skip
+    # caching them to keep workflow outputs compact.
+    cache_outputs = False
     inputs = [
         Field('X', 'Input features of the dataset'),
         Field('y', 'Target variable to predict'),
     ]
     outputs = [
-        Field('X', 'Input features woth vectorized features'),
+        Field('X', 'Input features with vectorized features'),
     ]
 
     def _execute(self, inputs: dict):

@@ -353,6 +353,13 @@ class Step(metaclass=StepMeta):
         return inputs, outputs
     
 
+    # Subclasses may set this to False to skip writing their outputs to disk
+    # (the step still runs in memory and feeds the next step normally — only
+    # the cache_data() side effect is suppressed). Useful for cheap
+    # preprocessing steps whose disk artifacts inflate the cache without
+    # giving meaningful resume value.
+    cache_outputs: bool = True
+
     def cache_data(self, data_dict: dict):
         """Cache a dictionary of mixed data types into a structured folder.
 
@@ -367,7 +374,7 @@ class Step(metaclass=StepMeta):
         -------
         None
         """
-        if self.cache_dir is None:
+        if self.cache_dir is None or not self.cache_outputs:
             return
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
@@ -458,9 +465,27 @@ class Step(metaclass=StepMeta):
 
         # Execute the step
         if execution_data_file.exists():
-            data_dict, metrics_dict = load_cached_data(self.cache_dir)
-            self.logged_metrics = metrics_dict
-            return data_dict
+            try:
+                data_dict, metrics_dict = load_cached_data(self.cache_dir)
+                # Validate required outputs are present
+                expected = {f.name for f in self.outputs}
+                if self.namespace:
+                    expected = {f"{name}_{self.namespace}" for name in expected}
+                missing = expected - set(data_dict.keys())
+                if missing:
+                    raise ValueError(f"Cache missing outputs: {missing}")
+                self.logged_metrics = metrics_dict
+                return data_dict
+            except Exception:
+                # Cache is incomplete — re-execute the step
+                execution_data_file.unlink(missing_ok=True)
+
+        # If we reach here, this step will re-execute. Invalidate downstream caches
+        # so they don't use stale data.
+        if self.cache_dir:
+            for child_marker in self.cache_dir.rglob('_executed.json'):
+                if child_marker != execution_data_file:
+                    child_marker.unlink(missing_ok=True)
 
         fun_outputs, mem_usage, time_usage = profile_function(self._execute, namespaced_inputs)
 
@@ -476,7 +501,7 @@ class Step(metaclass=StepMeta):
         else:
             namespaced_outputs = base_outputs
 
-        if self.cache_dir:
+        if self.cache_dir and self.cache_outputs:
             dump_json(execution_data_file, {
                 'time_usage': time_usage,
                 'mem_usage': mem_usage,

@@ -9,6 +9,10 @@ from ...workflow import Step, Field
 
 class Preprocessing(Step):
     name = "preprocessing"
+    # Preprocessing steps are cheap and deterministic; skip their on-disk cache
+    # to keep workflow outputs compact (only the dataset + splits + model
+    # results are worth persisting).
+    cache_outputs = False
 
 
 class ColumnTypeDetection(Preprocessing):
@@ -143,6 +147,7 @@ class LabelEncoder(Step):
         Integer-encoded labels in a NumPy array.
     """
     name = "label-encoding"
+    cache_outputs = False
     inputs = [Field('y', 'Target variable to predict')]
     outputs = [
         Field('y', 'Encoded target variable'),
