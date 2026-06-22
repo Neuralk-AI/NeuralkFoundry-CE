@@ -14,19 +14,18 @@ from neuralk_foundry_ce.workflow import WorkFlow, Step, Field
 # Define a minimal DummyStep for testing
 class DummyStep(Step):
     inputs = [Field('x', '')]
-    outputs = [Field('y', '')]
+    outputs = [Field('x', ''), Field('y', '')]
 
     def __init__(self, name, increment):
+        super().__init__()
         self.name = name
         self.increment = increment
-        self.logged_metrics = {}
-        self.namespace = None
 
-    def run(self, inputs):
-        x = inputs["x"]
-        y = x + self.increment
-        self.logged_metrics = {"increment": self.increment}
-        return {"x": x + self.increment, "y": y}
+    def _execute(self, inputs):
+        x = inputs["x"] + self.increment
+        self.output("x", x)
+        self.output("y", x)
+        self.log_metric("increment", self.increment)
 
 
 # TESTS
@@ -84,3 +83,44 @@ def test_cache_files_are_created_correctly():
     assert step_dir.exists()
     assert any(f.name.startswith("y") for f in step_dir.iterdir() if f.name.endswith(".npy") or f.name.endswith(".json"))
     shutil.rmtree(cache_dir)
+
+
+class _EmitX(Step):
+    """A step that goes through the normal cache machinery (uses _execute)."""
+    inputs = [Field('seed', '')]
+    outputs = [Field('X', '')]
+
+    def __init__(self, name, value):
+        super().__init__()
+        self.name = name
+        self.value = value
+
+    def _execute(self, inputs):
+        self.output('X', np.full(4, inputs['seed'] + self.value))
+
+
+def test_workflow_gc_postpones_overlapping_outputs():
+    """Two steps both emit 'X'. GC drops step 0's X.npy, records 'postponed'
+    in its marker, and a second run replays from cache without re-executing."""
+    cache_dir = Path(tempfile.mkdtemp())
+    try:
+        wf = WorkFlow(steps=[_EmitX('first', 1), _EmitX('second', 10)], cache_dir=cache_dir)
+        out, _ = wf.run({'seed': 0})
+        assert (out['X'] == 10).all()
+
+        # Caches are nested under the previous step. After GC, step 0 keeps the
+        # marker but loses X.npy; step 1 keeps X.npy.
+        first_dir = cache_dir / '0_first'
+        second_dir = first_dir / '1_second'
+        assert (first_dir / '_executed.json').exists()
+        assert not (first_dir / 'X.npy').exists()
+        assert (second_dir / 'X.npy').exists()
+        marker = json.loads((first_dir / '_executed.json').read_text())
+        assert marker['postponed'] == {'X': '1_second'}
+
+        # Second run: both steps trust their marker (no re-execute).
+        wf2 = WorkFlow(steps=[_EmitX('first', 1), _EmitX('second', 10)], cache_dir=cache_dir)
+        out2, _ = wf2.run({'seed': 0})
+        assert (out2['X'] == 10).all()
+    finally:
+        shutil.rmtree(cache_dir)

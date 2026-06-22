@@ -476,6 +476,14 @@ class Step(metaclass=StepMeta):
                     if self.namespace:
                         expected = {f"{name}_{self.namespace}" for name in expected}
                     missing = expected - set(data_dict.keys())
+                    # Some outputs may have been GC'd by the workflow because a
+                    # later step re-emits the same field. Those are listed in
+                    # the marker as 'postponed' and will be supplied downstream.
+                    marker = load_json(execution_data_file)
+                    postponed = set(marker.get('postponed', {}).keys())
+                    if self.namespace:
+                        postponed = {f"{n}_{self.namespace}" for n in postponed}
+                    missing -= postponed
                     if missing:
                         raise ValueError(f"Cache missing outputs: {missing}")
                     self.logged_metrics = metrics_dict

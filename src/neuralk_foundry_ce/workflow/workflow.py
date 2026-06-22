@@ -11,6 +11,7 @@ import warnings
 from .step import Step
 from .utils import notebook_display
 from ..utils.logging import log
+from ..utils.data import load_json, dump_json
 
 
 def set_seed(seed: int = 42) -> None:
@@ -43,6 +44,47 @@ def set_seed(seed: int = 42) -> None:
         tf.random.set_seed(seed)
     except ImportError:
         pass
+
+
+# Extensions of cached output files written by Step.cache_data() (scalars live
+# inside _scalars.json and are handled separately).
+_DATA_SUFFIXES = ('.parquet', '.npy', '.pkl', '.json')
+
+
+def _gc_overlapping_outputs(step_cache_dirs):
+    """For each output field, keep only the last step's copy on disk. Earlier
+    copies are deleted and their step marker records 'postponed: {field: step_id}'
+    so a subsequent run can locate the value downstream.
+    Caches are nested (step n+1's dir is inside step n's), so listing each
+    step's dir non-recursively naturally excludes downstream artifacts.
+    """
+    # field_name -> (cache_dir, step_id) for the most recent writer seen so far.
+    last_writer = {}
+    for cdir, step_id in step_cache_dirs:
+        if cdir is None or not cdir.exists():
+            continue
+        for file in cdir.iterdir():
+            if not file.is_file() or file.name.startswith('_'):
+                continue
+            if file.suffix == '.dtypes.json':
+                continue  # sidecar to a .parquet, handled with its main file
+            if file.suffix not in _DATA_SUFFIXES:
+                continue
+            field = file.stem
+            if field in last_writer:
+                prev_cdir, _ = last_writer[field]
+                victim = prev_cdir / file.name
+                if victim.exists():
+                    victim.unlink()
+                sidecar = victim.with_suffix('').with_suffix('.dtypes.json')
+                if sidecar.exists():
+                    sidecar.unlink()
+                marker_path = prev_cdir / '_executed.json'
+                if marker_path.exists():
+                    marker = load_json(marker_path)
+                    marker.setdefault('postponed', {})[field] = step_id
+                    dump_json(marker_path, marker)
+            last_writer[field] = (cdir, step_id)
 
 
 class WorkFlow:
@@ -157,6 +199,7 @@ class WorkFlow:
         data = copy.copy(init_data)
         metrics = {}
         cache_dir = self.cache_dir
+        step_cache_dirs = []
 
         for i_step, step in enumerate(self.steps):
             step_id = f'{i_step}_{step.name}'
@@ -165,6 +208,7 @@ class WorkFlow:
             if cache_dir:
                 cache_dir = cache_dir / step_id
                 step.set_cache_dir(cache_dir)
+                step_cache_dirs.append((cache_dir, step_id))
 
             # In case the seed is not set in the step, best effort to ensure reproducibility
             set_seed(i_step)
@@ -173,6 +217,7 @@ class WorkFlow:
             data.update(new_data)
             metrics[step.name] = copy.copy(step.logged_metrics)
 
+        _gc_overlapping_outputs(step_cache_dirs)
         return data, metrics
     
     def set_parameter(self, parameter_name, value, set_all=True, verbose=1):
