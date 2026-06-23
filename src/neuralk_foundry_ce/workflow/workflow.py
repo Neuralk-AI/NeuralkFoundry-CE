@@ -109,6 +109,17 @@ class WorkFlow:
 
     cache_dir : pathlib.Path
         The directory used for caching intermediate results.
+
+    Notes
+    -----
+    After every successful ``run``, overlapping outputs across steps are
+    garbage-collected: when a later step writes a field with the same name as
+    an earlier step, the earlier copy is removed from disk and the earlier
+    step's ``_executed.json`` records ``postponed: {field: step_id}``. On a
+    subsequent cached run, the earlier step trusts its marker and lets the
+    later step supply the value. This keeps caches small without breaking
+    resume semantics — steps whose outputs were postponed are not
+    re-executed.
     """
 
     def __init__(self, steps, cache_dir=Path('./cache')):

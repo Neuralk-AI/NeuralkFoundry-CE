@@ -53,7 +53,9 @@ Most ML frameworks fall into one of two camps:
 : Plug in your own logic or replace any step with a variant.
 
 **Built-in Caching & Logging**
-: Avoid recomputation and keep track of metrics automatically.
+: Avoid recomputation and keep track of metrics automatically. Workflows
+  garbage-collect overlapping outputs across steps so caches stay small,
+  while preserving resume semantics through a ``postponed`` marker.
 
 **Workflow Explorer UI**
 : Inspect and debug workflows through an interactive, visual interface.
