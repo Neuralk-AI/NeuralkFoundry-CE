@@ -487,16 +487,18 @@ class Step(metaclass=StepMeta):
                     if missing:
                         raise ValueError(f"Cache missing outputs: {missing}")
                     self.logged_metrics = metrics_dict
+                    print(f"[Step {self.name}] loaded outputs from cache ({self.cache_dir})")
                     return data_dict
                 except Exception:
                     # Cache is incomplete — re-execute the step.
                     execution_data_file.unlink(missing_ok=True)
 
-            # If we reach here this step will re-execute. Invalidate downstream
-            # caches so they don't use stale data.
-            for child_marker in self.cache_dir.rglob('_executed.json'):
-                if child_marker != execution_data_file:
-                    child_marker.unlink(missing_ok=True)
+            # A re-execute here does NOT invalidate downstream markers on its
+            # own: steps are deterministic given their inputs, so a valid
+            # marker downstream reflects a cache produced from the same
+            # inputs. If the user really needs to invalidate a subtree, they
+            # can delete the cache directory manually.
+            print(f"[Step {self.name}] no cached outputs found, running step")
 
         fun_outputs, mem_usage, time_usage = profile_function(self._execute, namespaced_inputs)
 
