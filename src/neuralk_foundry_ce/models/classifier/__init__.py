@@ -10,6 +10,7 @@ from .lightgbm import LightGBMClassifier
 from .tabpfn import TabPFNClassifier
 from .base import ClassifierModel
 from .tabicl import TabICLClassifier
+from .tabfm import TabFMClassifier
 from .mlp import MLPClassifier
 from .modern_nca import ModernNCAClassifier
 from .randomforest import RandForestClassifier
@@ -25,6 +26,7 @@ __all__ = [
     'LightGBMClassifier',
     'TabPFNClassifier',
     'TabICLClassifier',
+    'TabFMClassifier',
     'ClassifierModel',
     'MLPClassifier',
     'ModernNCAClassifier',
