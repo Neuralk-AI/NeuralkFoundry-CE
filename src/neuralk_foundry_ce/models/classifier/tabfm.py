@@ -10,15 +10,17 @@ _TABFM_BASE_MODEL = {}
 
 
 def _load_base_model(backend: str):
-    if backend not in _TABFM_BASE_MODEL:
+    key = (backend, global_config.device)
+    if key not in _TABFM_BASE_MODEL:
         if backend == 'pytorch':
             from tabfm import tabfm_v1_0_0_pytorch as tabfm_v1_0_0
+            _TABFM_BASE_MODEL[key] = tabfm_v1_0_0.load(device=global_config.device)
         elif backend == 'jax':
             from tabfm import tabfm_v1_0_0_jax as tabfm_v1_0_0
+            _TABFM_BASE_MODEL[key] = tabfm_v1_0_0.load()
         else:
             raise ValueError(f"Unknown TabFM backend: {backend!r}")
-        _TABFM_BASE_MODEL[backend] = tabfm_v1_0_0.load()
-    return _TABFM_BASE_MODEL[backend]
+    return _TABFM_BASE_MODEL[key]
 
 
 class TabFMClassifier(ClassifierModel):
