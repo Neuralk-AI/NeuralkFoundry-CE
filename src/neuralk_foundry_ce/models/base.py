@@ -58,12 +58,14 @@ class BaseModel(Step):
             # assume binary classification and proba for class 1.
             y_score = np.vstack([1 - y_score, y_score]).T
 
-        # Sklearn checking that the sum of probabilities equals one is too
-        # strict. We add a looser version here.
+        # Float32 backbones (e.g. TabFM) can emit values marginally above 1.0
+        # (e.g. 1.0000001) that trip sklearn's strict range check. Clip to
+        # [0, 1] first, then renormalize row-wise if rows are close to 1.
+        y_score = np.clip(y_score, 0.0, 1.0)
         y_prob_sum = y_score.sum(axis=1)
         if np.allclose(y_prob_sum, 1, rtol=1e-5):
             # It's close enough, we renormalize to avoid the sklearn warning.
-            y_score = y_score / y_prob_sum[0, None]
+            y_score = y_score / y_prob_sum[:, None]
 
         return y_score
 
