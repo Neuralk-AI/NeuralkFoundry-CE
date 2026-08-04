@@ -53,6 +53,16 @@ class BaseModel(Step):
         Field('n_hyperopt_trials', 'Number of trials attempted for hyperparameter optimization', default=100),
     ]
 
+    def get_fixed_params(self, inputs):
+        """Parameters held constant across hyperparameter trials.
+
+        Both `_execute` and `hyperopt` call this unconditionally, but only the classifiers
+        defined it, so every regressor raised AttributeError before a model was ever built.
+        An empty default keeps the contract total; subclasses override it.
+        """
+        return {}
+
+
     def _correct_predicted_proba(self, y_score):
         if len(y_score.shape) == 1:
             # assume binary classification and proba for class 1.
@@ -196,7 +206,10 @@ class BaseModel(Step):
                 n_ensemble=n_ensemble
             )
 
-            best_params = best_trial.params
+            # Optuna records only what it sampled, so refitting from best_trial.params alone
+            # drops everything get_fixed_params supplies. Merge them the same way the trials
+            # did, with the fixed values taking precedence.
+            best_params = best_trial.params | self.get_fixed_params(inputs)
             self.init_model(best_params)
 
             # Take care of ensembles first
