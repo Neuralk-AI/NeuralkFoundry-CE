@@ -11,6 +11,7 @@ from .tabpfn import TabPFNClassifier
 from .base import ClassifierModel
 from .tabicl import TabICLClassifier
 from .tabfm import TabFMClassifier
+from .seldon import SeldonClassifier
 from .mlp import MLPClassifier
 from .modern_nca import ModernNCAClassifier
 from .randomforest import RandForestClassifier
@@ -27,6 +28,7 @@ __all__ = [
     'TabPFNClassifier',
     'TabICLClassifier',
     'TabFMClassifier',
+    'SeldonClassifier',
     'ClassifierModel',
     'MLPClassifier',
     'ModernNCAClassifier',
